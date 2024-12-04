@@ -15,6 +15,8 @@ const windText = document.querySelector('.wind-value-txt');
 const weatherSummaryImage = document.querySelector('.weather-summary-img');
 const currentDateText = document.querySelector('.current-date-txt')
 
+const forecastItemContainer = document.querySelector('.forecast-items-container');
+
 searchButton.addEventListener('click', () => {
     if(cityInput.value.trim()!=''){
         update_weather_info(cityInput.value);
@@ -28,15 +30,14 @@ cityInput.addEventListener('keydown', (event) => {
         update_weather_info(cityInput.value);
         cityInput.value = ' '
         cityInput.blur();
-    }
-    
+    }  
 });
 
 async function getFetchData(endPoint, city){
     const apiURL = `https://api.openweathermap.org/data/2.5/${endPoint}?q=${city}&appid=${apiKey}&units=metric`;
-    const respose = await fetch(apiURL);
+    const response = await fetch(apiURL);
 
-    return respose.json();
+    return response.json();
 }
 
 function getWeatherIcon(id){
@@ -57,6 +58,47 @@ function getCurrentDate(){
         month: 'short'
     }
     return currentDate.toLocaleDateString('en-GB', options);
+}
+
+async function update_forecast_info(city){
+    const forecastData = await getFetchData('forecast', city);
+    const timetaken = '12:00:00';
+    const todayDate = new Date().toISOString().split('T')[0];
+
+    forecastItemContainer.innerHTML = '';
+
+    forecastData.list.forEach(forecastWeather => {
+        if(forecastWeather.dt_txt.includes(timetaken) && !forecastWeather.dt_txt.includes(todayDate)){
+            update_forecast_items(forecastWeather);
+        } 
+    });
+    
+}
+
+function update_forecast_items(weather_data){
+    console.log(weather_data);
+    const{
+        dt_txt: date,
+        weather: [{id}],
+        main: {temp}
+    } = weather_data
+
+    const dateTaken = new Date(date);
+    const dateOption = {
+        day: '2-digit',
+        month: 'short'
+    }
+    const dateResult = dateTaken.toLocaleDateString('en-US', dateOption);
+
+    const forecastItem = `
+            <div class="forecast-item">
+                <h5 class="forecast-item-date regaular-txt">${dateResult}</h5>
+                <img src="assets/weather/${getWeatherIcon(id)}" class="forecast-item-img">
+                <h5 class="forecast-item-temp">${Math.round(temp)} °C</h5>
+            </div>
+    `
+
+    forecastItemContainer.insertAdjacentHTML('beforeend', forecastItem);
 }
 
 async function update_weather_info(city){
@@ -84,6 +126,7 @@ async function update_weather_info(city){
     weatherSummaryImage.src = `assets/weather/${getWeatherIcon(id)}`;
     currentDateText.textContent = getCurrentDate();
 
+    await update_forecast_info(city)
     showDisplaySection(weatherInfoSection);
 }
 
@@ -93,3 +136,4 @@ function showDisplaySection(section){
 
     section.style.display = 'flex';
 }
+
